@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Feel Like Home — POS</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Noto+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#1A3D2B; --ink2:#2E6B47; --gold:#C9A84C; --gold-l:#F5DFA0;
+  --cream:#FFFBF0; --warm:#F9F3E8; --red:#C0392B; --blue:#1A5276;
+  --orange:#D4651A; --purple:#7B4F9E; --white:#FFFFFF; --gray:#888;
+  --r:14px; --shadow:0 4px 24px rgba(26,61,43,.13);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans Thai',sans-serif;background:var(--warm);color:var(--ink);min-height:100dvh;overflow-x:hidden}
+
+#topbar{position:sticky;top:0;z-index:100;background:var(--ink);display:flex;align-items:center;justify-content:space-between;padding:10px 16px;gap:10px}
+#topbar h1{font-family:'Playfair Display',serif;font-size:18px;color:var(--gold-l);white-space:nowrap}
+#topbar .meta{font-size:11px;color:var(--gold);display:flex;flex-direction:column;align-items:flex-end}
+#topbar .actions{display:flex;gap:6px}
+.tb-btn{background:var(--gold);color:var(--ink);border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;font-family:'Noto Sans Thai',sans-serif;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.tb-btn:active{opacity:.7}
+.tb-btn.outline{background:transparent;color:var(--gold-l);border:1.5px solid var(--gold)}
+
+#tabs{display:flex;background:var(--ink2);overflow-x:auto;scrollbar-width:none}
+#tabs::-webkit-scrollbar{display:none}
+.tab{padding:10px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,.6);white-space:nowrap;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s}
+.tab.active{color:var(--gold-l);border-bottom-color:var(--gold)}
+
+.page{display:none;padding:14px}
+.page.active{display:block}
+
+.section-title{font-family:'Playfair Display',serif;font-size:15px;color:var(--ink2);margin:14px 0 10px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--gold);opacity:.4}
+
+/* ── ORDER PAGE ── */
+/* Cart summary at top */
+#cart-summary{background:var(--ink);border-radius:var(--r);margin-bottom:14px;overflow:hidden;display:none}
+#cart-summary-header{padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
+#cart-summary-header span{color:var(--gold-l);font-weight:600;font-size:13px}
+#cart-summary-header button{background:none;border:none;color:var(--gold);font-size:11px;cursor:pointer;font-family:'Noto Sans Thai',sans-serif}
+#cart-lines{padding:0 14px 10px}
+.cart-line{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08);gap:8px}
+.cart-line:last-child{border-bottom:none}
+.cart-line-left{flex:1;min-width:0}
+.cart-line-name{color:var(--gold-l);font-size:12px;font-weight:600}
+.cart-line-note{color:var(--gold);font-size:10px;margin-top:1px}
+.cart-line-right{display:flex;align-items:center;gap:8px}
+.cart-line-price{color:var(--gold-l);font-size:12px;font-weight:700;white-space:nowrap}
+.cart-line-del{background:none;border:none;color:rgba(255,255,255,.4);font-size:16px;cursor:pointer;padding:0 2px;line-height:1}
+.cart-line-del:active{color:var(--red)}
+
+/* Menu cards */
+.menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
+.menu-card{background:var(--white);border-radius:var(--r);padding:12px 10px 10px;box-shadow:0 2px 10px rgba(0,0,0,.06);border:1.5px solid transparent;transition:border-color .2s,box-shadow .2s;position:relative;overflow:hidden}
+.menu-card .cat-dot{position:absolute;top:9px;right:9px;width:8px;height:8px;border-radius:50%}
+.cat-dot.coffee{background:var(--ink2)} .cat-dot.non{background:var(--orange)} .cat-dot.dessert{background:var(--purple)}
+.menu-card h3{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:6px;padding-right:14px}
+.price-row{font-size:11px;color:var(--gray);display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.price-tag{background:var(--warm);padding:2px 6px;border-radius:4px;display:flex;align-items:center;gap:3px}
+.price-input{width:44px;border:none;background:transparent;font-size:11px;color:var(--ink);font-family:'Noto Sans Thai',sans-serif;font-weight:600;text-align:right;outline:none;cursor:text}
+.price-input:focus{background:#fff8e0;border-radius:3px}
+
+/* add-to-cart area per menu */
+.add-area{display:flex;flex-direction:column;gap:6px}
+.type-btn-row{display:flex;gap:5px;flex-wrap:wrap}
+.type-btn{flex:1;padding:7px 4px;border:1.5px solid #ddd;border-radius:8px;font-size:11px;font-weight:600;font-family:'Noto Sans Thai',sans-serif;background:white;color:var(--ink);cursor:pointer;text-align:center;transition:all .15s;white-space:nowrap}
+.type-btn:active{transform:scale(.93)}
+.type-btn.hot-btn:active,.type-btn.hot-btn.selected{background:#fff3e0;border-color:var(--orange);color:var(--orange)}
+.type-btn.iced-btn:active,.type-btn.iced-btn.selected{background:#e8f4fd;border-color:var(--blue);color:var(--blue)}
+.note-input{width:100%;border:1.5px solid #eee;border-radius:7px;padding:5px 8px;font-size:11px;font-family:'Noto Sans Thai',sans-serif;outline:none;color:var(--ink)}
+.note-input:focus{border-color:var(--gold)}
+.shot-toggle{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--orange);font-weight:600}
+.shot-toggle-btn{background:none;border:1.5px solid var(--orange);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;color:var(--orange);cursor:pointer;font-family:'Noto Sans Thai',sans-serif;transition:all .15s}
+.shot-toggle-btn.on{background:var(--orange);color:white}
+.add-confirm-btn{width:100%;background:var(--ink);color:var(--gold-l);border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:700;font-family:'Noto Sans Thai',sans-serif;cursor:pointer;transition:opacity .15s}
+.add-confirm-btn:active{opacity:.7}
+
+/* ORDER STRIP */
+#order-strip{position:sticky;bottom:0;background:var(--ink);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 -4px 20px rgba(0,0,0,.2)}
+#strip-info{color:var(--gold-l)}
+#strip-info .strip-rev{font-size:20px;font-weight:700}
+#strip-info .strip-sub{font-size:11px;color:var(--gold)}
+#save-btn{background:var(--gold);color:var(--ink);border:none;border-radius:10px;padding:11px 22px;font-size:15px;font-weight:700;font-family:'Noto Sans Thai',sans-serif;cursor:pointer;box-shadow:0 4px 12px rgba(201,168,76,.4);transition:transform .15s,box-shadow .15s}
+#save-btn:active{transform:scale(.95);box-shadow:none}
+
+/* ── BILLS PAGE ── */
+.bill-card{background:white;border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden;border:1.5px solid #eee;animation:fadeIn .3s ease}
+.bill-card-header{background:var(--ink);color:var(--gold-l);padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
+.bill-num{font-family:'Playfair Display',serif;font-size:15px}
+.bill-time{font-size:11px;color:var(--gold)}
+.bill-items{padding:8px 14px}
+.bill-item-row{display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:12px;gap:8px}
+.bill-item-row:last-child{border-bottom:none}
+.bill-item-left{flex:1}
+.bill-item-name{font-weight:600;color:var(--ink)}
+.bill-item-sub{font-size:10px;color:var(--gray);margin-top:2px}
+.bill-item-price{font-weight:700;color:var(--ink2);white-space:nowrap}
+.bill-footer{background:var(--warm);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.bill-total{font-size:16px;font-weight:700;color:var(--ink)}
+.bill-total span{color:var(--ink2)}
+.bill-actions{display:flex;gap:6px}
+.bill-done-btn{background:var(--ink2);color:white;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;font-family:'Noto Sans Thai',sans-serif;cursor:pointer}
+.bill-print-btn{background:var(--blue);color:white;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;font-family:'Noto Sans Thai',sans-serif;cursor:pointer}
+.bill-delete-btn{background:#f0f0f0;color:var(--gray);border:none;border-radius:8px;padding:7px 10px;font-size:14px;cursor:pointer}
+.bills-empty{text-align:center;padding:48px 20px;color:var(--gray)}
+.bills-empty .icon{font-size:40px;margin-bottom:10px}
+
+/* HISTORY */
+.filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filter-bar input,.filter-bar select{padding:8px 10px;border-radius:8px;border:1.5px solid #ddd;background:white;font-family:'Noto Sans Thai',sans-serif;font-size:12px;color:var(--ink);outline:none}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--gold)}
+.hist-table-wrap{overflow-x:auto;border-radius:var(--r);box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;background:white}
+thead{background:var(--ink)}
+thead th{padding:10px 8px;font-size:11px;color:var(--gold-l);font-weight:600;white-space:nowrap;text-align:center}
+tbody tr{border-bottom:1px solid #f0f0f0}
+tbody tr:hover{background:var(--warm)}
+tbody td{padding:9px 8px;font-size:12px;color:var(--ink);text-align:center;white-space:nowrap}
+tbody td.name-col{text-align:left;font-weight:600}
+.badge{display:inline-block;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600}
+.badge.coffee{background:#d6ead8;color:var(--ink2)} .badge.non{background:#fff3e0;color:var(--orange)} .badge.dessert{background:#f3e8ff;color:var(--purple)}
+.del-btn{background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:3px 7px;border-radius:4px}
+.del-btn:hover{color:var(--red);background:#fff0f0}
+
+/* SUMMARY */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:18px}
+.stat-card{background:white;border-radius:var(--r);padding:14px;box-shadow:var(--shadow);border-left:4px solid var(--gold)}
+.stat-card .stat-label{font-size:11px;color:var(--gray);margin-bottom:5px}
+.stat-card .stat-val{font-size:20px;font-weight:700;color:var(--ink)}
+.stat-card.green{border-left-color:var(--ink2)} .stat-card.red{border-left-color:var(--red)} .stat-card.blue{border-left-color:var(--blue)}
+.month-table-wrap{border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.month-table-wrap table{background:white}
+.month-row-total{background:var(--ink)!important}
+.month-row-total td{color:var(--gold-l)!important;font-weight:700}
+
+/* COST PAGE */
+.cost-section{background:white;border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.cost-section-header{background:var(--ink);color:var(--gold-l);padding:10px 14px;font-family:'Playfair Display',serif;font-size:14px}
+.cost-table{width:100%;border-collapse:collapse}
+.cost-table th{background:var(--warm);padding:8px 10px;font-size:11px;color:var(--ink);text-align:center;font-weight:600}
+.cost-table td{padding:8px 10px;font-size:12px;border-bottom:1px solid #f5f5f5;text-align:center}
+.cost-table td:first-child{text-align:left;font-weight:600}
+.ingredient-section{background:white;border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.ingredient-header{background:var(--orange);color:white;padding:10px 14px;font-weight:600;font-size:13px}
+.ingredient-table{width:100%;border-collapse:collapse}
+.ingredient-table th{background:#fff5ee;padding:8px 10px;font-size:11px;color:var(--ink);font-weight:600}
+.ingredient-table td{padding:8px 10px;font-size:12px;border-bottom:1px solid #f5f5f5}
+.ingredient-table td:not(:first-child){text-align:center}
+.cost-input{width:65px;border:1.5px solid #eee;border-radius:6px;padding:4px 6px;font-size:12px;font-family:'Noto Sans Thai',sans-serif;text-align:right;outline:none;color:var(--ink)}
+.cost-input:focus{border-color:var(--gold);background:#fffcf0}
+.save-costs-btn{background:var(--ink);color:var(--gold-l);border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;font-family:'Noto Sans Thai',sans-serif;cursor:pointer;display:block;margin:12px auto}
+
+/* ADD MENU */
+.add-menu-form{background:white;border-radius:var(--r);box-shadow:var(--shadow);padding:16px;margin-bottom:16px}
+.add-menu-form h3{font-family:'Playfair Display',serif;font-size:15px;color:var(--ink2);margin-bottom:14px}
+.form-row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.form-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:100px}
+.form-group label{font-size:11px;font-weight:600;color:var(--ink)}
+.form-group input,.form-group select{padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-family:'Noto Sans Thai',sans-serif;font-size:13px;outline:none;color:var(--ink)}
+.form-group input:focus,.form-group select:focus{border-color:var(--gold)}
+.add-menu-btn{background:var(--ink2);color:white;border:none;border-radius:10px;padding:10px 24px;font-size:14px;font-weight:700;font-family:'Noto Sans Thai',sans-serif;cursor:pointer}
+.custom-menu-list{background:white;border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.custom-menu-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #f5f5f5;font-size:12px}
+.custom-menu-item:last-child{border-bottom:none}
+.custom-menu-del{background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px}
+.custom-menu-del:hover{color:var(--red);background:#fff0f0}
+
+/* TOAST & MODAL */
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--gold-l);padding:10px 22px;border-radius:99px;font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:all .3s;z-index:999;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#modal-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+#modal-overlay.open{display:flex}
+#modal{background:white;border-radius:20px;padding:24px;width:92%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto}
+#modal h2{font-family:'Playfair Display',serif;font-size:17px;margin-bottom:6px}
+#modal p{font-size:12px;color:var(--gray);margin-bottom:16px}
+.modal-row{display:flex;gap:10px;margin-bottom:10px}
+#modal label{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:3px;display:block}
+#modal input,#modal select{width:100%;padding:9px 11px;border-radius:8px;border:1.5px solid #ddd;font-family:'Noto Sans Thai',sans-serif;font-size:13px;outline:none}
+#modal input:focus,#modal select:focus{border-color:var(--gold)}
+.modal-actions{display:flex;gap:10px;margin-top:16px}
+.modal-actions button{flex:1;padding:11px;border-radius:10px;border:none;font-family:'Noto Sans Thai',sans-serif;font-size:14px;font-weight:600;cursor:pointer}
+.modal-actions .confirm-btn{background:var(--ink);color:var(--gold-l)}
+.modal-actions .cancel-btn{background:#f0f0f0;color:var(--gray)}
+.export-btn{display:inline-flex;align-items:center;gap:5px;background:var(--ink2);color:white;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;font-family:'Noto Sans Thai',sans-serif;cursor:pointer;margin-bottom:12px}
+
+/* PRINT */
+@media print{body>*:not(#print-area){display:none!important}#print-area{display:block!important}}
+#print-area{display:none}
+.receipt{width:100%;max-width:300px;margin:0 auto;font-family:'Courier New',monospace;font-size:13px}
+.receipt-header{text-align:center;border-bottom:2px dashed #333;padding-bottom:8px;margin-bottom:8px}
+.receipt-header h2{font-size:18px;font-weight:bold}
+.receipt-header p{font-size:11px;color:#555}
+.receipt-item{display:flex;justify-content:space-between;padding:3px 0}
+.receipt-item-sub{font-size:10px;color:#666;padding-left:8px}
+.receipt-divider{border-top:1px dashed #333;margin:6px 0}
+.receipt-total{display:flex;justify-content:space-between;font-weight:bold;font-size:15px;padding:3px 0}
+.receipt-footer{text-align:center;margin-top:10px;font-size:11px;color:#555}
+
+.profit-pos{color:var(--ink2)} .profit-neg{color:var(--red)}
+.empty-state{text-align:center;padding:48px 20px;color:var(--gray);font-size:14px}
+.empty-state .icon{font-size:40px;margin-bottom:10px}
+@media(min-width:768px){.menu-grid{grid-template-columns:repeat(auto-fill,minmax(175px,1fr))}}
+@media(max-width:480px){.menu-grid{grid-template-columns:repeat(2,1fr)}}
+.bill-card{animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.bill-card.removing{animation:fadeOut .3s ease forwards}
+@keyframes fadeOut{to{opacity:0;transform:translateX(60px)}}
+</style>
+</head>
+<body>
+<div id="print-area"></div>
+
+<div id="topbar">
+  <h1>☕ Feel Like Home</h1>
+  <div class="meta"><span id="clock"></span><span id="today-date"></span></div>
+  <div class="actions">
+    <button class="tb-btn outline" onclick="exportCSV()">⬇ Export</button>
+    <button class="tb-btn" onclick="clearAll()">🗑 ล้าง</button>
+  </div>
+</div>
+
+<div id="tabs">
+  <div class="tab active" onclick="showPage('order',this)">🧾 กรอกออเดอร์</div>
+  <div class="tab" onclick="showPage('bills',this)">📋 บิลลูกค้า <span id="bills-badge" style="display:none;background:var(--gold);color:var(--ink);border-radius:99px;padding:1px 7px;font-size:10px;margin-left:2px"></span></div>
+  <div class="tab" onclick="showPage('history',this)">📥 ประวัติ</div>
+  <div class="tab" onclick="showPage('daily',this)">📆 รายวัน</div>
+  <div class="tab" onclick="showPage('monthly',this)">📈 รายเดือน</div>
+  <div class="tab" onclick="showPage('cost',this)">💰 ต้นทุน</div>
+  <div class="tab" onclick="showPage('addmenu',this)">➕ เพิ่มเมนู</div>
+</div>
+
+<!-- ORDER PAGE -->
+<div class="page active" id="page-order">
+  <!-- Cart summary -->
+  <div id="cart-summary">
+    <div id="cart-summary-header">
+      <span id="cart-count-label">🛒 รายการที่เลือก</span>
+      <button onclick="clearCart()">ล้างทั้งหมด ✕</button>
+    </div>
+    <div id="cart-lines"></div>
+  </div>
+  <div id="menu-container"></div>
+</div>
+
+<div id="order-strip">
+  <div id="strip-info">
+    <div class="strip-rev" id="strip-rev">฿0</div>
+    <div class="strip-sub" id="strip-sub">0 รายการ</div>
+  </div>
+  <button id="save-btn" onclick="openSaveModal()">สร้างบิล ✓</button>
+</div>
+
+<!-- BILLS PAGE -->
+<div class="page" id="page-bills">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div class="section-title" style="margin:0;flex:1">📋 บิลที่รอดำเนินการ</div>
+    <div id="bills-count" style="font-size:13px;color:var(--gray)"></div>
+  </div>
+  <div id="bills-container"><div class="bills-empty"><div class="icon">🎉</div>ไม่มีบิลค้างอยู่</div></div>
+</div>
+
+<!-- HISTORY PAGE -->
+<div class="page" id="page-history">
+  <div class="filter-bar">
+    <input type="date" id="hist-date" onchange="renderHistory()">
+    <input type="text" id="hist-search" placeholder="🔍 ค้นหา..." oninput="renderHistory()" style="flex:1;min-width:120px">
+  </div>
+  <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+  <div class="hist-table-wrap">
+    <table>
+      <thead><tr><th>วันที่</th><th>เวลา</th><th>บิล/โต๊ะ</th><th>เมนู</th><th>รายละเอียด</th><th>หมายเหตุ</th><th>รายได้ ฿</th><th>ต้นทุน ฿</th><th>กำไร ฿</th><th></th></tr></thead>
+      <tbody id="hist-body"></tbody>
+    </table>
+  </div>
+  <div id="hist-empty" class="empty-state" style="display:none"><div class="icon">📭</div>ยังไม่มีออเดอร์</div>
+</div>
+
+<!-- DAILY PAGE -->
+<div class="page" id="page-daily">
+  <div class="filter-bar"><input type="date" id="daily-date" onchange="renderDaily()"></div>
+  <div class="summary-grid" id="daily-stats"></div>
+  <div class="section-title">ยอดแต่ละเมนู</div>
+  <div class="hist-table-wrap">
+    <table>
+      <thead><tr><th>เมนู</th><th>Hot</th><th>Iced</th><th>รายได้ ฿</th><th>กำไร ฿</th></tr></thead>
+      <tbody id="daily-menu-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MONTHLY PAGE -->
+<div class="page" id="page-monthly">
+  <div class="filter-bar"><select id="monthly-year" onchange="renderMonthly()"></select></div>
+  <div class="summary-grid" id="monthly-stats"></div>
+  <div class="month-table-wrap">
+    <table>
+      <thead><tr><th>เดือน</th><th>รายได้ ฿</th><th>ต้นทุน ฿</th><th>กำไร ฿</th><th>Margin</th><th>รายการ</th></tr></thead>
+      <tbody id="monthly-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- COST PAGE -->
+<div class="page" id="page-cost">
+  <div class="section-title">🧪 ราคาวัตถุดิบ</div>
+  <div class="ingredient-section">
+    <div class="ingredient-header">☕ วัตถุดิบหลัก</div>
+    <table class="ingredient-table">
+      <thead><tr><th style="text-align:left">วัตถุดิบ</th><th>ราคา/หน่วย (฿)</th><th>หน่วย</th><th>หมายเหตุ</th></tr></thead>
+      <tbody id="ingredient-body"></tbody>
+    </table>
+  </div>
+  <div class="section-title">📋 ต้นทุน & กำไรแต่ละเมนู</div>
+  <div class="cost-section">
+    <div class="cost-section-header">☕ Coffee</div>
+    <table class="cost-table">
+      <thead><tr><th style="text-align:left">เมนู</th><th>ต้นทุน Hot</th><th>ต้นทุน Iced</th><th>ราคา Hot</th><th>ราคา Iced</th><th>กำไร Hot</th><th>กำไร Iced</th></tr></thead>
+      <tbody id="cost-coffee-body"></tbody>
+    </table>
+  </div>
+  <div class="cost-section">
+    <div class="cost-section-header">🍵 Non-Coffee</div>
+    <table class="cost-table">
+      <thead><tr><th style="text-align:left">เมนู</th><th>ต้นทุน Hot</th><th>ต้นทุน Iced</th><th>ราคา Hot</th><th>ราคา Iced</th><th>กำไร Hot</th><th>กำไร Iced</th></tr></thead>
+      <tbody id="cost-noncoffee-body"></tbody>
+    </table>
+  </div>
+  <div class="cost-section">
+    <div class="cost-section-header" style="background:var(--purple)">🍰 Dessert / ขนม</div>
+    <table class="cost-table">
+      <thead><tr><th style="text-align:left">เมนู</th><th>ต้นทุน</th><th>ราคาขาย</th><th>กำไร</th></tr></thead>
+      <tbody id="cost-dessert-body"></tbody>
+    </table>
+  </div>
+  <button class="save-costs-btn" onclick="saveCosts()">💾 บันทึกต้นทุน</button>
+</div>
+
+<!-- ADD MENU PAGE -->
+<div class="page" id="page-addmenu">
+  <div class="add-menu-form">
+    <h3>➕ เพิ่มเมนูใหม่</h3>
+    <div class="form-row">
+      <div class="form-group" style="flex:2"><label>ชื่อเมนู</label><input type="text" id="new-name" placeholder="เช่น Lavender Latte"></div>
+      <div class="form-group"><label>หมวดหมู่</label>
+        <select id="new-cat" onchange="document.getElementById('new-cat-note').style.display=this.value==='Dessert'?'block':'none'">
+          <option value="Coffee">Coffee</option>
+          <option value="Non-Coffee">Non-Coffee</option>
+          <option value="Dessert">Dessert/ขนม</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>ราคา Hot (฿)</label><input type="number" id="new-hot" placeholder="เช่น 65"></div>
+      <div class="form-group"><label>ราคา Iced (฿)</label><input type="number" id="new-iced" placeholder="เช่น 75"></div>
+      <div class="form-group"><label>ต้นทุน (฿)</label><input type="number" id="new-cost" placeholder="เช่น 30"></div>
+    </div>
+    <div id="new-cat-note" style="font-size:11px;color:var(--orange);margin-bottom:10px;display:none">🍰 Dessert: ใช้ช่อง Hot สำหรับราคาขาย</div>
+    <button class="add-menu-btn" onclick="addCustomMenu()">➕ เพิ่มเมนู</button>
+  </div>
+  <div class="section-title">📋 เมนูที่เพิ่มเอง</div>
+  <div class="custom-menu-list" id="custom-menu-list"><div style="padding:16px;text-align:center;color:var(--gray);font-size:13px">ยังไม่มีเมนูที่เพิ่มเอง</div></div>
+</div>
+
+<div id="toast"></div>
+
+<!-- CREATE BILL MODAL -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2>🧾 สร้างบิลลูกค้า</h2>
+    <p>กรอกข้อมูลลูกค้าก่อนสร้างบิล</p>
+    <div class="modal-row">
+      <div style="flex:1"><label>วันที่</label><input type="date" id="modal-date"></div>
+      <div style="flex:1"><label>เวลา</label><input type="time" id="modal-time"></div>
+    </div>
+    <label>โต๊ะ / ชื่อลูกค้า</label>
+    <input type="text" id="modal-table" placeholder="เช่น โต๊ะ 3, คุณแนน..." style="margin-top:4px;margin-bottom:10px">
+    <div id="modal-preview" style="margin-top:4px;font-size:12px;color:var(--gray);max-height:160px;overflow-y:auto;border:1px solid #f0f0f0;border-radius:8px;padding:8px"></div>
+    <div id="modal-total" style="margin-top:8px;text-align:right;font-weight:700;font-size:15px;color:var(--ink2)"></div>
+    <div class="modal-actions">
+      <button class="cancel-btn" onclick="closeModal()">ยกเลิก</button>
+      <button class="confirm-btn" onclick="confirmCreateBill()">✓ สร้างบิล</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DEFAULT DATA ──────────────────────────────────────────────
+const DEFAULT_INGREDIENTS = [
+  {id:'espresso_shot',name:'กาแฟ 1 shot',unit:'shot',price:12,note:'ร้อน=1shot, เย็น=2shots'},
+  {id:'milk',name:'นม',unit:'ml',price:0.08,note:'~200ml/แก้ว'},
+  {id:'syrup',name:'น้ำเชื่อม',unit:'ml',price:0.05,note:'~30ml/แก้ว'},
+  {id:'ice',name:'น้ำแข็ง',unit:'แก้ว',price:3,note:''},
+  {id:'cup',name:'แก้ว/บรรจุ',unit:'ชิ้น',price:3,note:''},
+  {id:'extra_shot',name:'Extra Shot',unit:'shot',price:8,note:'Add-on +฿20/ลูกค้า'},
+];
+
+const DEFAULT_MENUS = [
+  {name:'Espresso',     cat:'Coffee',     hot:55,   iced:null, costHot:25,  costIced:null},
+  {name:'Americano',    cat:'Coffee',     hot:55,   iced:65,   costHot:20,  costIced:32},
+  {name:'Es Yen',       cat:'Coffee',     hot:null, iced:75,   costHot:null,costIced:30},
+  {name:'Cappuccino',   cat:'Coffee',     hot:65,   iced:75,   costHot:28,  costIced:40},
+  {name:'Latte',        cat:'Coffee',     hot:65,   iced:75,   costHot:28,  costIced:40},
+  {name:'Mocha',        cat:'Coffee',     hot:70,   iced:80,   costHot:33,  costIced:45},
+  {name:'Black Honey',  cat:'Coffee',     hot:null, iced:75,   costHot:null,costIced:34},
+  {name:'Black Orange', cat:'Coffee',     hot:null, iced:80,   costHot:null,costIced:37},
+  {name:'Pure Matcha',  cat:'Non-Coffee', hot:70,   iced:80,   costHot:40,  costIced:43},
+  {name:'Matcha Latte', cat:'Non-Coffee', hot:80,   iced:90,   costHot:42,  costIced:45},
+  {name:'Matcha Orange',cat:'Non-Coffee', hot:null, iced:90,   costHot:null,costIced:42},
+  {name:'Green Tea',    cat:'Non-Coffee', hot:55,   iced:65,   costHot:28,  costIced:31},
+  {name:'Thai Tea',     cat:'Non-Coffee', hot:55,   iced:65,   costHot:26,  costIced:29},
+  {name:'Lemon Tea',    cat:'Non-Coffee', hot:55,   iced:65,   costHot:25,  costIced:28},
+  {name:'Fresh Milk',   cat:'Non-Coffee', hot:50,   iced:60,   costHot:28,  costIced:31},
+  {name:'Cocoa',        cat:'Non-Coffee', hot:65,   iced:75,   costHot:32,  costIced:35},
+];
+
+// ── STATE ─────────────────────────────────────────────────────
+// cart = array of line items: {menuIdx, name, cat, type, extraShot, unitPrice, cost, note}
+let cart = [];
+
+function ld(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}}
+function sv(k,v){localStorage.setItem(k,JSON.stringify(v))}
+
+function getMenus(){
+  const saved=ld('flh_menu_prices',{});
+  const custom=ld('flh_custom_menus',[]);
+  const base=DEFAULT_MENUS.map((m,i)=>({
+    ...m,
+    hot: saved['m'+i+'_hot']??m.hot,
+    iced:saved['m'+i+'_iced']??m.iced,
+    costHot: saved['m'+i+'_cH']??m.costHot,
+    costIced:saved['m'+i+'_cI']??m.costIced,
+  }));
+  return [...base,...custom];
+}
+function getIngredients(){
+  const saved=ld('flh_ingredients',{});
+  return DEFAULT_INGREDIENTS.map(i=>({...i,price:saved[i.id]??i.price}));
+}
+function loadOrders(){return ld('flh_orders',[])}
+function saveOrders(a){sv('flh_orders',a)}
+function loadBills(){return ld('flh_bills',[])}
+function saveBills(a){sv('flh_bills',a);updateBillsBadge()}
+
+// ── CLOCK ─────────────────────────────────────────────────────
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clock').textContent=n.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('today-date').textContent=n.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'});
+}
+setInterval(updateClock,1000); updateClock();
+
+// ── BUILD MENU UI ─────────────────────────────────────────────
+function buildMenuUI(){
+  const MENUS=getMenus();
+  const cats=['Coffee','Non-Coffee','Dessert'];
+  const icons={Coffee:'☕','Non-Coffee':'🍵',Dessert:'🍰'};
+  let html='';
+  cats.forEach(cat=>{
+    const items=MENUS.filter(m=>m.cat===cat||(cat==='Dessert'&&m.cat==='Dessert/ขนม'));
+    if(!items.length)return;
+    const dot=cat==='Coffee'?'coffee':cat==='Non-Coffee'?'non':'dessert';
+    html+=`<div class="section-title">${icons[cat]||'🍰'} ${cat}</div><div class="menu-grid">`;
+    items.forEach(m=>{
+      const idx=MENUS.indexOf(m);
+      const isD=m.cat==='Dessert'||m.cat==='Dessert/ขนม';
+      const priceHtml=[
+        m.hot ?`<span class="price-tag">${isD?'💰':'🔴'} <input class="price-input" id="pi-hot-${idx}" type="number" value="${m.hot}" onchange="savePrice(${idx},'hot',this.value)" onclick="this.select()"> ฿</span>`:'',
+        m.iced?`<span class="price-tag">🔵 <input class="price-input" id="pi-iced-${idx}" type="number" value="${m.iced}" onchange="savePrice(${idx},'iced',this.value)" onclick="this.select()"> ฿</span>`:'',
+      ].filter(Boolean).join('');
+
+      // add-to-cart buttons
+      let addHtml='<div class="add-area">';
+      addHtml+='<div class="type-btn-row">';
+      if(m.hot&&!isD)  addHtml+=`<button class="type-btn hot-btn"  onclick="addToCart(${idx},'hot')"  >🔴 Hot ${m.hot}฿</button>`;
+      if(m.iced&&!isD) addHtml+=`<button class="type-btn iced-btn" onclick="addToCart(${idx},'iced')" >🔵 Iced ${m.iced}฿</button>`;
+      if(isD&&m.hot)   addHtml+=`<button class="type-btn hot-btn"  onclick="addToCart(${idx},'item')" style="color:var(--purple);border-color:var(--purple)">🍰 ${m.hot}฿</button>`;
+      addHtml+='</div>';
+      if(!isD) addHtml+=`<div style="display:flex;gap:6px;align-items:center"><input class="note-input" id="note-${idx}" placeholder="หมายเหตุรายการนี้..." style="flex:1"><button class="shot-toggle-btn" id="shot-${idx}" onclick="toggleShot(${idx})">+Shot</button></div>`;
+      else     addHtml+=`<input class="note-input" id="note-${idx}" placeholder="หมายเหตุ...">`;
+      addHtml+='</div>';
+
+      html+=`<div class="menu-card" id="card-${idx}">
+        <div class="cat-dot ${dot}"></div>
+        <h3>${m.name}</h3>
+        <div class="price-row">${priceHtml}</div>
+        ${addHtml}
+      </div>`;
+    });
+    html+='</div>';
+  });
+  document.getElementById('menu-container').innerHTML=html;
+}
+
+// Shot toggle state per card
+const shotState={};
+function toggleShot(idx){
+  shotState[idx]=!shotState[idx];
+  const btn=document.getElementById('shot-'+idx);
+  if(btn){btn.classList.toggle('on',shotState[idx]);btn.textContent=shotState[idx]?'⚡ Shot ON':'+Shot';}
+}
+
+// ── ADD TO CART ───────────────────────────────────────────────
+function addToCart(idx,type){
+  const MENUS=getMenus();
+  const m=MENUS[idx];
+  if(!m)return;
+  const isD=m.cat==='Dessert'||m.cat==='Dessert/ขนม';
+  const noteEl=document.getElementById('note-'+idx);
+  const note=noteEl?noteEl.value.trim():'';
+  const extraShot=!isD&&shotState[idx];
+  const unitPrice=(type==='hot'||type==='item'?m.hot:m.iced)||0;
+  const extraShotPrice=extraShot?20:0;
+  const costBase=type==='iced'?(m.costIced??m.costHot??0):(m.costHot??0);
+  const costExtra=extraShot?8:0;
+
+  cart.push({
+    menuIdx:idx, name:m.name, cat:m.cat,
+    type, extraShot,
+    unitPrice:unitPrice+extraShotPrice,
+    cost:costBase+costExtra,
+    note,
+  });
+
+  // Reset note & shot
+  if(noteEl)noteEl.value='';
+  if(shotState[idx]){shotState[idx]=false;const b=document.getElementById('shot-'+idx);if(b){b.classList.remove('on');b.textContent='+Shot';}}
+
+  updateCartUI();
+  toast(`✅ เพิ่ม ${m.name} (${type==='hot'?'Hot':type==='iced'?'Iced':'🍰'})${extraShot?' +Shot':''}${note?' — '+note:''}`);
+}
+
+function removeCartItem(i){
+  cart.splice(i,1);
+  updateCartUI();
+}
+
+function clearCart(){
+  cart=[];
+  updateCartUI();
+}
+
+function updateCartUI(){
+  const summary=document.getElementById('cart-summary');
+  const linesEl=document.getElementById('cart-lines');
+  const countLabel=document.getElementById('cart-count-label');
+  if(!cart.length){summary.style.display='none';updateStrip();return;}
+  summary.style.display='block';
+  countLabel.textContent=`🛒 ${cart.length} รายการที่เลือก`;
+  linesEl.innerHTML=cart.map((c,i)=>{
+    const typeLabel=c.type==='hot'?'🔴 Hot':c.type==='iced'?'🔵 Iced':'🍰';
+    const shotLabel=c.extraShot?' ⚡+Shot':'';
+    const noteLabel=c.note?` — ${c.note}`:'';
+    return `<div class="cart-line">
+      <div class="cart-line-left">
+        <div class="cart-line-name">${c.name} ${typeLabel}${shotLabel}</div>
+        ${c.note?`<div class="cart-line-note">${c.note}</div>`:''}
+      </div>
+      <div class="cart-line-right">
+        <div class="cart-line-price">${c.unitPrice.toLocaleString()}฿</div>
+        <button class="cart-line-del" onclick="removeCartItem(${i})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+  updateStrip();
+}
+
+function updateStrip(){
+  const total=cart.reduce((s,c)=>s+c.unitPrice,0);
+  document.getElementById('strip-rev').textContent=`฿${total.toLocaleString()}`;
+  document.getElementById('strip-sub').textContent=`${cart.length} รายการ`;
+}
+
+// ── PRICE SAVE ────────────────────────────────────────────────
+function savePrice(idx,type,val){
+  const saved=ld('flh_menu_prices',{});
+  saved[`m${idx}_${type==='hot'?'hot':'iced'}`]=parseFloat(val)||0;
+  sv('flh_menu_prices',saved);
+}
+
+// ── MODAL ─────────────────────────────────────────────────────
+function openSaveModal(){
+  if(!cart.length){toast('⚠️ ยังไม่ได้เลือกเมนู');return;}
+  const now=new Date();
+  document.getElementById('modal-date').value=now.toISOString().slice(0,10);
+  document.getElementById('modal-time').value=now.toTimeString().slice(0,5);
+  document.getElementById('modal-table').value='';
+
+  let prev='';
+  let total=0;
+  cart.forEach(c=>{
+    const typeLabel=c.type==='hot'?'🔴 Hot':c.type==='iced'?'🔵 Iced':'🍰';
+    const shotLabel=c.extraShot?' +Shot':'';
+    prev+=`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f5f5f5">
+      <span><b>${c.name}</b> ${typeLabel}${shotLabel}${c.note?' <span style="color:var(--gray)">— '+c.note+'</span>':''}</span>
+      <span style="font-weight:700;color:var(--ink2);white-space:nowrap;margin-left:8px">${c.unitPrice.toLocaleString()}฿</span>
+    </div>`;
+    total+=c.unitPrice;
+  });
+  document.getElementById('modal-preview').innerHTML=prev;
+  document.getElementById('modal-total').textContent=`รวม: ฿${total.toLocaleString()}`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open')}
+
+function confirmCreateBill(){
+  const dateVal=document.getElementById('modal-date').value;
+  const timeVal=document.getElementById('modal-time').value;
+  const tableVal=document.getElementById('modal-table').value.trim();
+  if(!dateVal||!timeVal){toast('⚠️ กรุณากรอกวันที่และเวลา');return;}
+
+  const billId='B'+Date.now();
+  const billItems=cart.map(c=>({...c}));
+  const rev=billItems.reduce((s,c)=>s+c.unitPrice,0);
+  const cost=billItems.reduce((s,c)=>s+c.cost,0);
+
+  const bill={
+    id:billId,date:dateVal,time:timeVal,
+    table:tableVal||('บิล '+(loadBills().length+1)),
+    items:billItems,rev,cost,profit:rev-cost,
+    createdAt:Date.now()
+  };
+
+  const allBills=loadBills();
+  allBills.push(bill);
+  saveBills(allBills);
+
+  cart=[];
+  updateCartUI();
+  closeModal();
+  toast('✅ สร้างบิลแล้ว! ไปที่แท็บ "บิลลูกค้า"');
+  renderBills();
+}
+
+// ── BILLS PAGE ────────────────────────────────────────────────
+function renderBills(){
+  const allBills=loadBills();
+  const c=document.getElementById('bills-container');
+  const cnt=document.getElementById('bills-count');
+  if(!allBills.length){
+    c.innerHTML='<div class="bills-empty"><div class="icon">🎉</div>ไม่มีบิลค้างอยู่ ทุกอย่างเสร็จแล้ว!</div>';
+    cnt.textContent=''; return;
+  }
+  cnt.textContent=allBills.length+' บิล';
+  c.innerHTML=allBills.map(bill=>{
+    const rows=bill.items.map(it=>{
+      const typeLabel=it.type==='hot'?'🔴 Hot':it.type==='iced'?'🔵 Iced':'🍰';
+      const shotLabel=it.extraShot?' ⚡+Shot':'';
+      return `<div class="bill-item-row">
+        <div class="bill-item-left">
+          <div class="bill-item-name">${it.name} ${typeLabel}${shotLabel}</div>
+          ${it.note?`<div class="bill-item-sub">📝 ${it.note}</div>`:''}
+        </div>
+        <div class="bill-item-price">${it.unitPrice.toLocaleString()}฿</div>
+      </div>`;
+    }).join('');
+    return `<div class="bill-card" data-bill-id="${bill.id}">
+      <div class="bill-card-header">
+        <div><div class="bill-num">🧾 ${bill.table}</div><div class="bill-time">${bill.date} ${bill.time}</div></div>
+        <div style="font-size:13px;color:var(--gold-l);font-weight:700">${bill.rev.toLocaleString()}฿</div>
+      </div>
+      <div class="bill-items">${rows}</div>
+      <div class="bill-footer">
+        <div class="bill-total">รวม: <span>${bill.rev.toLocaleString()}฿</span></div>
+        <div class="bill-actions">
+          <button class="bill-delete-btn" onclick="deleteBill('${bill.id}')">✕</button>
+          <button class="bill-print-btn" onclick="printBill('${bill.id}')">🖨️ พิมพ์</button>
+          <button class="bill-done-btn" onclick="completeBill('${bill.id}')">✅ เสร็จสิ้น</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function completeBill(billId){
+  const allBills=loadBills();
+  const bill=allBills.find(b=>b.id===billId);
+  if(!bill)return;
+  const orders=loadOrders();
+  bill.items.forEach(it=>{
+    orders.push({
+      id:Date.now()+Math.random(),
+      date:bill.date,time:bill.time,
+      billId:bill.id,billTable:bill.table,
+      menu:it.name,cat:it.cat,
+      type:it.type,
+      extraShot:it.extraShot,
+      rev:it.unitPrice,cost:it.cost,profit:it.unitPrice-it.cost,
+      note:it.note||''
+    });
+  });
+  saveOrders(orders);
+  const el=document.querySelector(`[data-bill-id="${billId}"]`);
+  if(el){
+    el.classList.add('removing');
+    setTimeout(()=>{saveBills(loadBills().filter(b=>b.id!==billId));renderBills();},280);
+  } else {
+    saveBills(allBills.filter(b=>b.id!==billId));renderBills();
+  }
+  toast('✅ บิลเสร็จสิ้น บันทึกลงประวัติแล้ว!');
+}
+
+function deleteBill(billId){
+  saveBills(loadBills().filter(b=>b.id!==billId));
+  renderBills();toast('🗑 ลบบิลแล้ว');
+}
+
+function updateBillsBadge(){
+  const n=loadBills().length;
+  const el=document.getElementById('bills-badge');
+  el.style.display=n?'inline':'none';
+  el.textContent=n;
+}
+
+// ── PRINT ─────────────────────────────────────────────────────
+function printBill(billId){
+  const bill=loadBills().find(b=>b.id===billId);
+  if(!bill)return;
+  const rows=bill.items.map(it=>{
+    const tl=it.type==='hot'?'Hot':it.type==='iced'?'Iced':'';
+    const sl=it.extraShot?' +Shot':'';
+    return `<div class="receipt-item"><span>${it.name}${tl?' ('+tl+')':''}${sl}</span><span>${it.unitPrice.toLocaleString()}฿</span></div>
+    ${it.note?`<div class="receipt-item-sub">📝 ${it.note}</div>`:''}`;
+  }).join('');
+  document.getElementById('print-area').innerHTML=`<div class="receipt">
+    <div class="receipt-header"><h2>☕ Feel Like Home</h2><p>${bill.table}</p><p>${bill.date} ${bill.time}</p></div>
+    ${rows}
+    <div class="receipt-divider"></div>
+    <div class="receipt-total"><span>รวมทั้งหมด</span><span>${bill.rev.toLocaleString()} ฿</span></div>
+    <div class="receipt-footer"><p>ขอบคุณที่ใช้บริการ 🙏</p><p>Feel Like Home Coffee</p></div>
+  </div>`;
+  document.getElementById('print-area').style.display='block';
+  window.print();
+  setTimeout(()=>{document.getElementById('print-area').style.display='none';document.getElementById('print-area').innerHTML='';},1000);
+}
+
+// ── HISTORY ───────────────────────────────────────────────────
+function renderHistory(){
+  const df=document.getElementById('hist-date').value;
+  const sf=document.getElementById('hist-search').value.toLowerCase();
+  let orders=loadOrders();
+  if(df) orders=orders.filter(o=>o.date===df);
+  if(sf) orders=orders.filter(o=>o.menu.toLowerCase().includes(sf)||((o.note||'').toLowerCase().includes(sf)));
+  const tbody=document.getElementById('hist-body');
+  const empty=document.getElementById('hist-empty');
+  if(!orders.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  orders=[...orders].reverse();
+  tbody.innerHTML=orders.map(o=>{
+    const typeLabel=o.type==='hot'?'🔴 Hot':o.type==='iced'?'🔵 Iced':o.type==='item'?'🍰':'—';
+    const shotLabel=o.extraShot?' +Shot':'';
+    const catKey=o.cat==='Coffee'?'coffee':o.cat==='Dessert'||o.cat==='Dessert/ขนม'?'dessert':'non';
+    return `<tr>
+      <td>${formatDate(o.date)}</td><td>${o.time}</td>
+      <td style="font-size:11px;color:var(--gray)">${o.billTable||'-'}</td>
+      <td class="name-col">${o.menu}</td>
+      <td>${typeLabel}${shotLabel}</td>
+      <td style="font-size:11px;color:var(--gray)">${o.note||'-'}</td>
+      <td style="color:var(--ink2);font-weight:600">${o.rev.toLocaleString()}</td>
+      <td style="color:var(--red)">${o.cost.toLocaleString()}</td>
+      <td class="${o.profit>=0?'profit-pos':'profit-neg'}" style="font-weight:700">${o.profit.toLocaleString()}</td>
+      <td><button class="del-btn" onclick="deleteOrder('${o.id}')">×</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function deleteOrder(id){
+  saveOrders(loadOrders().filter(o=>String(o.id)!==String(id)));
+  renderHistory();toast('🗑 ลบแล้ว');
+}
+
+// ── DAILY ─────────────────────────────────────────────────────
+function renderDaily(){
+  const d=document.getElementById('daily-date').value;
+  if(!d)return;
+  const orders=loadOrders().filter(o=>o.date===d);
+  const totRev=orders.reduce((s,o)=>s+o.rev,0);
+  const totCost=orders.reduce((s,o)=>s+o.cost,0);
+  const totProfit=orders.reduce((s,o)=>s+o.profit,0);
+  const margin=totRev?((totProfit/totRev)*100).toFixed(1):0;
+  document.getElementById('daily-stats').innerHTML=`
+    <div class="stat-card blue"><div class="stat-label">รายได้รวม</div><div class="stat-val">฿${totRev.toLocaleString()}</div></div>
+    <div class="stat-card red"><div class="stat-label">ต้นทุนรวม</div><div class="stat-val">฿${totCost.toLocaleString()}</div></div>
+    <div class="stat-card green"><div class="stat-label">กำไรสุทธิ</div><div class="stat-val ${totProfit>=0?'profit-pos':'profit-neg'}">฿${totProfit.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="stat-label">Margin</div><div class="stat-val">${margin}%</div></div>
+    <div class="stat-card"><div class="stat-label">จำนวนรายการ</div><div class="stat-val">${orders.length}</div></div>`;
+  const byMenu={};
+  orders.forEach(o=>{
+    if(!byMenu[o.menu])byMenu[o.menu]={hot:0,iced:0,rev:0,profit:0};
+    if(o.type==='hot'||o.type==='item')byMenu[o.menu].hot++;
+    if(o.type==='iced')byMenu[o.menu].iced++;
+    byMenu[o.menu].rev+=o.rev;byMenu[o.menu].profit+=o.profit;
+  });
+  document.getElementById('daily-menu-body').innerHTML=Object.entries(byMenu).map(([name,d])=>
+    `<tr><td class="name-col">${name}</td><td>${d.hot||'-'}</td><td>${d.iced||'-'}</td>
+    <td style="color:var(--ink2);font-weight:600">${d.rev.toLocaleString()}</td>
+    <td class="${d.profit>=0?'profit-pos':'profit-neg'}" style="font-weight:700">${d.profit.toLocaleString()}</td></tr>`
+  ).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">ไม่มีข้อมูล</td></tr>';
+}
+
+// ── MONTHLY ───────────────────────────────────────────────────
+function initMonthlyYears(){
+  const orders=loadOrders();
+  const years=[...new Set(orders.map(o=>o.date.slice(0,4)))];
+  const ty=new Date().getFullYear().toString();
+  if(!years.includes(ty))years.push(ty);
+  years.sort((a,b)=>b-a);
+  const sel=document.getElementById('monthly-year');
+  sel.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  sel.value=ty;
+}
+
+function renderMonthly(){
+  const year=document.getElementById('monthly-year').value;
+  const orders=loadOrders().filter(o=>o.date.startsWith(year));
+  const months=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  let tR=0,tC=0,tP=0,tI=0;
+  const rows=months.map((m,i)=>{
+    const mn=String(i+1).padStart(2,'0');
+    const mo=orders.filter(o=>o.date.slice(5,7)===mn);
+    const r=mo.reduce((s,o)=>s+o.rev,0),c=mo.reduce((s,o)=>s+o.cost,0),p=mo.reduce((s,o)=>s+o.profit,0);
+    const mg=r?((p/r)*100).toFixed(1):0;
+    tR+=r;tC+=c;tP+=p;tI+=mo.length;
+    return `<tr><td style="text-align:left;padding-left:12px;font-weight:500">${m}</td>
+      <td style="color:var(--ink2)">${r?r.toLocaleString():'-'}</td>
+      <td style="color:var(--red)">${c?c.toLocaleString():'-'}</td>
+      <td class="${p>=0?'profit-pos':'profit-neg'}" style="font-weight:700">${p?p.toLocaleString():'-'}</td>
+      <td style="color:var(--gray)">${r?mg+'%':'-'}</td><td>${mo.length||'-'}</td></tr>`;
+  }).join('');
+  const tMg=tR?((tP/tR)*100).toFixed(1):0;
+  document.getElementById('monthly-body').innerHTML=rows+`<tr class="month-row-total">
+    <td style="text-align:left;padding-left:12px">รวมทั้งปี</td>
+    <td>${tR.toLocaleString()}</td><td>${tC.toLocaleString()}</td>
+    <td>${tP.toLocaleString()}</td><td>${tMg}%</td><td>${tI}</td></tr>`;
+  document.getElementById('monthly-stats').innerHTML=`
+    <div class="stat-card blue"><div class="stat-label">รายได้ทั้งปี</div><div class="stat-val">฿${tR.toLocaleString()}</div></div>
+    <div class="stat-card green"><div class="stat-label">กำไรทั้งปี</div><div class="stat-val ${tP>=0?'profit-pos':'profit-neg'}">฿${tP.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="stat-label">Margin เฉลี่ย</div><div class="stat-val">${tMg}%</div></div>
+    <div class="stat-card"><div class="stat-label">รายการทั้งปี</div><div class="stat-val">${tI}</div></div>`;
+}
+
+// ── COST PAGE ─────────────────────────────────────────────────
+function renderCostPage(){
+  const MENUS=getMenus();
+  const ings=getIngredients();
+  document.getElementById('ingredient-body').innerHTML=ings.map(ing=>`<tr>
+    <td>${ing.name}</td>
+    <td><input class="cost-input" type="number" step="0.01" id="ing-${ing.id}" value="${ing.price}"></td>
+    <td>${ing.unit}</td><td style="text-align:left;font-size:11px;color:var(--gray)">${ing.note}</td></tr>`).join('');
+
+  const coffeeMenus=MENUS.filter(m=>m.cat==='Coffee');
+  document.getElementById('cost-coffee-body').innerHTML=coffeeMenus.map(m=>{
+    const cH=m.costHot??0,cI=m.costIced??0;
+    const pH=m.hot?m.hot-cH:null,pI=m.iced?m.iced-cI:null;
+    return `<tr><td>${m.name}</td>
+      <td style="color:var(--red)">${m.hot?cH+'฿':'-'}</td><td style="color:var(--red)">${m.iced?cI+'฿':'-'}</td>
+      <td style="color:var(--ink2)">${m.hot?m.hot+'฿':'-'}</td><td style="color:var(--ink2)">${m.iced?m.iced+'฿':'-'}</td>
+      <td class="${pH!==null&&pH>=0?'profit-pos':'profit-neg'}">${pH!==null?(pH>=0?'+':'')+pH+'฿':'-'}</td>
+      <td class="${pI!==null&&pI>=0?'profit-pos':'profit-neg'}">${pI!==null?(pI>=0?'+':'')+pI+'฿':'-'}</td></tr>`;
+  }).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:12px">ไม่มีเมนู</td></tr>';
+
+  const ncMenus=MENUS.filter(m=>m.cat==='Non-Coffee');
+  document.getElementById('cost-noncoffee-body').innerHTML=ncMenus.map(m=>{
+    const cH=m.costHot??0,cI=m.costIced??m.costHot??0;
+    const pH=m.hot?m.hot-cH:null,pI=m.iced?m.iced-cI:null;
+    return `<tr><td>${m.name}</td>
+      <td style="color:var(--red)">${m.hot?cH+'฿':'-'}</td><td style="color:var(--red)">${m.iced?cI+'฿':'-'}</td>
+      <td style="color:var(--ink2)">${m.hot?m.hot+'฿':'-'}</td><td style="color:var(--ink2)">${m.iced?m.iced+'฿':'-'}</td>
+      <td class="${pH!==null&&pH>=0?'profit-pos':'profit-neg'}">${pH!==null?(pH>=0?'+':'')+pH+'฿':'-'}</td>
+      <td class="${pI!==null&&pI>=0?'profit-pos':'profit-neg'}">${pI!==null?(pI>=0?'+':'')+pI+'฿':'-'}</td></tr>`;
+  }).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:12px">ไม่มีเมนู</td></tr>';
+
+  const dMenus=MENUS.filter(m=>m.cat==='Dessert'||m.cat==='Dessert/ขนม');
+  document.getElementById('cost-dessert-body').innerHTML=dMenus.map(m=>{
+    const c=m.costHot??m.cost??0;const p=m.hot?m.hot-c:null;
+    return `<tr><td>${m.name}</td><td style="color:var(--red)">${c}฿</td>
+      <td style="color:var(--ink2)">${m.hot?m.hot+'฿':'-'}</td>
+      <td class="${p!==null&&p>=0?'profit-pos':'profit-neg'}">${p!==null?(p>=0?'+':'')+p+'฿':'-'}</td></tr>`;
+  }).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--gray);padding:12px">ยังไม่มีเมนู Dessert</td></tr>';
+}
+
+function saveCosts(){
+  const ings=getIngredients();
+  const savedIng={};
+  ings.forEach(ing=>{const el=document.getElementById('ing-'+ing.id);if(el)savedIng[ing.id]=parseFloat(el.value)||ing.price;});
+  sv('flh_ingredients',savedIng);
+  toast('✅ บันทึกต้นทุนแล้ว!');renderCostPage();buildMenuUI();
+}
+
+// ── ADD CUSTOM MENU ───────────────────────────────────────────
+function addCustomMenu(){
+  const name=document.getElementById('new-name').value.trim();
+  const cat=document.getElementById('new-cat').value;
+  const hot=parseFloat(document.getElementById('new-hot').value)||null;
+  const iced=parseFloat(document.getElementById('new-iced').value)||null;
+  const cost=parseFloat(document.getElementById('new-cost').value)||0;
+  if(!name){toast('⚠️ กรุณากรอกชื่อเมนู');return;}
+  if(!hot&&!iced){toast('⚠️ กรุณากรอกราคาอย่างน้อย 1 อย่าง');return;}
+  const customs=ld('flh_custom_menus',[]);
+  customs.push({name,cat:cat==='Dessert'?'Dessert/ขนม':cat,hot,iced:cat==='Dessert'?null:iced,costHot:cost,costIced:cost+3});
+  sv('flh_custom_menus',customs);
+  ['new-name','new-hot','new-iced','new-cost'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('new-cat').value='Coffee';
+  document.getElementById('new-cat-note').style.display='none';
+  buildMenuUI();renderCustomMenuList();toast(`✅ เพิ่มเมนู "${name}" แล้ว!`);
+}
+
+function renderCustomMenuList(){
+  const customs=ld('flh_custom_menus',[]);
+  const el=document.getElementById('custom-menu-list');
+  if(!customs.length){el.innerHTML='<div style="padding:16px;text-align:center;color:var(--gray);font-size:13px">ยังไม่มีเมนูที่เพิ่มเอง</div>';return;}
+  el.innerHTML=customs.map((m,i)=>`<div class="custom-menu-item">
+    <div><b>${m.name}</b> <span style="font-size:11px;color:var(--gray)">[${m.cat}]</span>
+    <div style="font-size:11px;color:var(--gray)">${m.hot?'Hot: '+m.hot+'฿ ':''} ${m.iced?'Iced: '+m.iced+'฿ ':''} | ต้นทุน: ${m.costHot}฿</div></div>
+    <button class="custom-menu-del" onclick="deleteCustomMenu(${i})">×</button></div>`).join('');
+}
+
+function deleteCustomMenu(idx){
+  const customs=ld('flh_custom_menus',[]);customs.splice(idx,1);sv('flh_custom_menus',customs);
+  buildMenuUI();renderCustomMenuList();toast('🗑 ลบเมนูแล้ว');
+}
+
+// ── EXPORT ────────────────────────────────────────────────────
+function exportCSV(){
+  const orders=loadOrders();
+  if(!orders.length){toast('⚠️ ไม่มีข้อมูล');return;}
+  const hdr='วันที่,เวลา,บิล,เมนู,ประเภท,+Shot,รายได้,ต้นทุน,กำไร,หมายเหตุ';
+  const rows=orders.map(o=>[o.date,o.time,o.billTable||'',o.menu,o.type,o.extraShot?'Yes':'No',o.rev,o.cost,o.profit,o.note||''].join(','));
+  const csv='\uFEFF'+[hdr,...rows].join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download=`FeelLikeHome_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  URL.revokeObjectURL(url);toast('📥 Export แล้ว');
+}
+
+// ── UTILITIES ─────────────────────────────────────────────────
+function showPage(name,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('order-strip').style.display=name==='order'?'flex':'none';
+  if(name==='history'){renderHistory();}
+  if(name==='bills'){renderBills();}
+  if(name==='daily'){document.getElementById('daily-date').value=new Date().toISOString().slice(0,10);renderDaily();}
+  if(name==='monthly'){initMonthlyYears();renderMonthly();}
+  if(name==='cost'){renderCostPage();}
+  if(name==='addmenu'){renderCustomMenuList();}
+}
+
+function formatDate(d){
+  if(!d)return'';const[y,m,day]=d.split('-');
+  const ms=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${+day} ${ms[+m]} ${+y+543}`;
+}
+
+function toast(msg){
+  const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+function clearAll(){
+  cart=[];updateCartUI();toast('🗑 ล้างออเดอร์แล้ว');
+}
+
+document.getElementById('modal-overlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modal-overlay'))closeModal();
+});
+
+// ── INIT ──────────────────────────────────────────────────────
+buildMenuUI();
+updateCartUI();
+updateBillsBadge();
+document.getElementById('hist-date').value=new Date().toISOString().slice(0,10);
+document.getElementById('daily-date').value=new Date().toISOString().slice(0,10);
+</script>
+</body>
+</html>
